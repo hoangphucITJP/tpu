@@ -48,14 +48,10 @@ the format:
 import math
 import os
 import random
-import tarfile
-import urllib
 
 from absl import app
 from absl import flags
 import tensorflow.compat.v1 as tf
-
-from google.cloud import storage
 
 flags.DEFINE_string(
     'project', None, 'Google cloud project id for uploading the dataset.')
@@ -93,60 +89,6 @@ def _check_or_create_dir(directory):
   """Check if directory exists otherwise create it."""
   if not tf.gfile.Exists(directory):
     tf.gfile.MakeDirs(directory)
-
-
-def download_dataset(raw_data_dir):
-  """Download the Imagenet dataset into the temporary directory."""
-  def _download(url, filename):
-    """Download the dataset at the provided filepath."""
-    urllib.urlretrieve(url, filename)
-
-  def _get_members(filename):
-    """Get all members of a tarfile."""
-    tar = tarfile.open(filename)
-    members = tar.getmembers()
-    tar.close()
-    return members
-
-  def _untar_file(filename, directory, member=None):
-    """Untar a file at the provided directory path."""
-    _check_or_create_dir(directory)
-    tar = tarfile.open(filename)
-    if member is None:
-      tar.extractall(path=directory)
-    else:
-      tar.extract(member, path=directory)
-    tar.close()
-
-  # Check if raw_data_dir exists
-  _check_or_create_dir(raw_data_dir)
-
-  # Download the training data
-  tf.logging.info('Downloading the training set. This may take a few hours.')
-  directory = os.path.join(raw_data_dir, TRAINING_DIRECTORY)
-  filename = os.path.join(raw_data_dir, TRAINING_FILE)
-  _download(BASE_URL + TRAINING_FILE, filename)
-
-  # The training tarball contains multiple tar balls inside it. Extract them
-  # in order to create a clean directory structure.
-  for member in _get_members(filename):
-    subdirectory = os.path.join(directory, member.name.split('.')[0])
-    sub_tarfile = os.path.join(subdirectory, member.name)
-
-    _untar_file(filename, subdirectory, member)
-    _untar_file(sub_tarfile, subdirectory)
-    os.remove(sub_tarfile)
-
-  # Download synset_labels for validation set
-  tf.logging.info('Downloading the validation labels.')
-  _download(LABELS_URL, os.path.join(raw_data_dir, LABELS_FILE))
-
-  # Download the validation data
-  tf.logging.info('Downloading the validation set. This may take a few hours.')
-  directory = os.path.join(raw_data_dir, VALIDATION_DIRECTORY)
-  filename = os.path.join(raw_data_dir, VALIDATION_FILE)
-  _download(BASE_URL + VALIDATION_FILE, filename)
-  _untar_file(filename, directory)
 
 
 def _int64_feature(value):
@@ -411,66 +353,16 @@ def convert_to_tf_records(raw_data_dir):
   return training_records, validation_records
 
 
-def upload_to_gcs(training_records, validation_records):
-  """Upload TF-Record files to GCS, at provided path."""
-
-  # Find the GCS bucket_name and key_prefix for dataset files
-  path_parts = FLAGS.gcs_output_path[5:].split('/', 1)
-  bucket_name = path_parts[0]
-  if len(path_parts) == 1:
-    key_prefix = ''
-  elif path_parts[1].endswith('/'):
-    key_prefix = path_parts[1]
-  else:
-    key_prefix = path_parts[1] + '/'
-
-  client = storage.Client(project=FLAGS.project)
-  bucket = client.get_bucket(bucket_name)
-
-  def _upload_files(filenames):
-    """Upload a list of files into a specifc subdirectory."""
-    for i, filename in enumerate(sorted(filenames)):
-      blob = bucket.blob(key_prefix + os.path.basename(filename))
-      blob.upload_from_filename(filename)
-      if not i % 20:
-        tf.logging.info('Finished uploading file: %s' % filename)
-
-  # Upload training dataset
-  tf.logging.info('Uploading the training data.')
-  _upload_files(training_records)
-
-  # Upload validation dataset
-  tf.logging.info('Uploading the validation data.')
-  _upload_files(validation_records)
-
-
 def main(argv):  # pylint: disable=unused-argument
   tf.logging.set_verbosity(tf.logging.INFO)
-
-  if FLAGS.gcs_upload and FLAGS.project is None:
-    raise ValueError('GCS Project must be provided.')
-
-  if FLAGS.gcs_upload and FLAGS.gcs_output_path is None:
-    raise ValueError('GCS output path must be provided.')
-  elif FLAGS.gcs_upload and not FLAGS.gcs_output_path.startswith('gs://'):
-    raise ValueError('GCS output path must start with gs://')
 
   if FLAGS.local_scratch_dir is None:
     raise ValueError('Scratch directory path must be provided.')
 
-  # Download the dataset if it is not present locally
   raw_data_dir = FLAGS.raw_data_dir
-  if raw_data_dir is None:
-    raw_data_dir = os.path.join(FLAGS.local_scratch_dir, 'raw_data')
-    tf.logging.info('Downloading data to raw_data_dir: %s' % raw_data_dir)
-    download_dataset(raw_data_dir)
 
   # Convert the raw data into tf-records
-  training_records, validation_records = convert_to_tf_records(raw_data_dir)
-
-  # Upload to GCS
-  if FLAGS.gcs_upload:
-    upload_to_gcs(training_records, validation_records)
+  convert_to_tf_records(raw_data_dir)
 
 
 if __name__ == '__main__':
