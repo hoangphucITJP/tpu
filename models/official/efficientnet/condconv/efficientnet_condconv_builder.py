@@ -72,7 +72,7 @@ def efficientnet_condconv(width_coefficient=None,
       relu_fn=tf.nn.swish,
       # The default is TPU-specific batch norm.
       # The alternative is tf.layers.BatchNormalization.
-      batch_norm=utils.TpuBatchNormalization,  # TPU-specific requirement.
+      batch_norm=tf.layers.BatchNormalization,  # TPU-specific requirement.
       use_se=True,
       condconv_num_experts=condconv_num_experts)
   decoder = efficientnet_builder.BlockDecoder()
