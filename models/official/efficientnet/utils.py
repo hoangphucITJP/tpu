@@ -26,7 +26,7 @@ from absl import logging
 import numpy as np
 import tensorflow.compat.v1 as tf
 
-from tensorflow.python.tpu import tpu_function  # pylint:disable=g-direct-tensorflow-import
+# from tensorflow.python.tpu import tpu_function  # pylint:disable=g-direct-tensorflow-import
 
 
 def build_learning_rate(initial_lr,
