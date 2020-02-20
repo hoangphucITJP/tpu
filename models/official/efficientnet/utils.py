@@ -246,7 +246,8 @@ class EvalCkptDriver(object):
     self.include_background_label = include_background_label
     self.image_size = image_size
 
-  def restore_model(self, sess, ckpt_dir, enable_ema=True, export_ckpt=None):
+  @staticmethod
+  def restore_model_stat(sess, ckpt_dir, enable_ema=True, export_ckpt=None):
     """Restore variables from checkpoint dir."""
     sess.run(tf.global_variables_initializer())
     checkpoint = tf.train.latest_checkpoint(ckpt_dir)
