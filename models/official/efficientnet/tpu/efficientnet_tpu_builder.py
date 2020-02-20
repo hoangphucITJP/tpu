@@ -73,7 +73,7 @@ def efficientnet_tpu(width_coefficient=None,
       relu_fn=tf.nn.swish,
       # The default is TPU-specific batch norm.
       # The alternative is tf.layers.BatchNormalization.
-      batch_norm=tf.layers.BatchNormalization,  # TPU-specific requirement.
+      batch_norm=tf.keras.layers.BatchNormalization,  # TPU-specific requirement.
       use_se=True)
   decoder = efficientnet_builder.BlockDecoder()
   return decoder.decode(blocks_args), global_params

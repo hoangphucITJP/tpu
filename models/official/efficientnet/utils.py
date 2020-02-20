@@ -86,7 +86,7 @@ def build_optimizer(learning_rate,
   return optimizer
 
 
-class TpuBatchNormalization(tf.layers.BatchNormalization):
+class TpuBatchNormalization(tf.keras.layers.BatchNormalization):
   # class TpuBatchNormalization(tf.layers.BatchNormalization):
   """Cross replica batch normalization."""
 
@@ -136,7 +136,7 @@ class TpuBatchNormalization(tf.layers.BatchNormalization):
       return (shard_mean, shard_variance)
 
 
-class BatchNormalization(tf.layers.BatchNormalization):
+class BatchNormalization(tf.keras.layers.BatchNormalization):
   """Fixed default name of BatchNormalization to match TpuBatchNormalization."""
 
   def __init__(self, name='tpu_batch_normalization', **kwargs):
@@ -216,7 +216,7 @@ def get_ema_vars():
   return list(set(ema_vars))
 
 
-class DepthwiseConv2D(tf.keras.layers.DepthwiseConv2D, tf.layers.Layer):
+class DepthwiseConv2D(tf.keras.layers.DepthwiseConv2D, tf.keras.layers.Layer):
   """Wrap keras DepthwiseConv2D to tf.layers."""
 
   pass
@@ -259,6 +259,8 @@ class EvalCkptDriver(object):
     else:
       var_dict = get_ema_vars()
       ema_assign_op = None
+
+    var_dict = [var_ for var_ in var_dict if 'efficientnet' in var_.name]
 
     tf.train.get_or_create_global_step()
     sess.run(tf.global_variables_initializer())

@@ -200,7 +200,7 @@ class CondConv2D(tf.keras.layers.Conv2D):
     else:
       self.bias = None
 
-    self.input_spec = tf.layers.InputSpec(
+    self.input_spec = tf.keras.layers.InputSpec(
         ndim=self.rank + 2, axes={channel_axis: input_dim})
 
     self.built = True
@@ -413,7 +413,7 @@ class DepthwiseCondConv2D(tf.keras.layers.DepthwiseConv2D):
     else:
       self.bias = None
     # Set input spec.
-    self.input_spec = tf.layers.InputSpec(
+    self.input_spec = tf.keras.layers.InputSpec(
         ndim=4, axes={channel_axis: input_dim})
     self.built = True
 
